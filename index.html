@@ -3,66 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ Termle</title>
+    <title>A+ Termle (5-Letter Edition)</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: #121213;
             color: white;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            height: 100vh;
             margin: 0;
-            padding: 20px;
         }
-        h1 { margin-bottom: 5px; color: #f39c12; }
-        #game-info { margin-bottom: 20px; color: #aaa; font-size: 0.9em; }
+        h1 { margin: 0; color: #f39c12; letter-spacing: 2px; }
+        #game-info { margin-bottom: 20px; color: #888; text-transform: uppercase; font-size: 0.8em; }
         #game-board {
             display: grid;
+            grid-template-columns: repeat(5, 1fr);
             gap: 5px;
-            margin-bottom: 20px;
         }
         .tile {
-            width: 50px;
-            height: 50px;
+            width: 58px;
+            height: 58px;
             border: 2px solid #3a3a3c;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: bold;
             text-transform: uppercase;
+            transition: transform 0.1s;
         }
+        .filled { border-color: #565758; }
         .correct { background-color: #538d4e; border-color: #538d4e; }
         .present { background-color: #b59f3b; border-color: #b59f3b; }
         .absent { background-color: #3a3a3c; border-color: #3a3a3c; }
         
-        #message { height: 30px; font-weight: bold; color: #f39c12; }
+        #message { height: 40px; margin-top: 20px; font-weight: bold; color: #f39c12; }
+        .reset-btn { margin-top: 10px; padding: 10px 20px; background: #f39c12; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; visibility: hidden; }
     </style>
 </head>
 <body>
 
     <h1>A+ TERMLE</h1>
-    <div id="game-info">Guess the CompTIA A+ acronym or term!</div>
-    <div id="message"></div>
+    <div id="game-info">5-Letter Certification Terms</div>
+    
     <div id="game-board"></div>
+    <div id="message"></div>
+    <button class="reset-btn" id="reset" onclick="location.reload()">RE-ATTEMPT EXAM</button>
 
     <script>
-        const WORD_LIST = ["MODEM", "PROXY", "PATCH", "RAID5", "SATA3", "DHCPD", "FUSER", "CMOSB", "LATEX"];
-        // Better list for A+:
-        const aPlusWords = ["NVME", "BIOS", "RAM", "DHCP", "HTML", "RAID", "SATA", "HTTP", "PING", "IPOS", "DDR4", "GPU", "CPU", "PDU", "UPS", "VLAN", "DNS", "WPA3", "LAN", "WAN"];
+        // Strictly 5-letter CompTIA A+ terms
+        const aPlusWords = [
+            "PROXY", "FUSER", "CACHE", "MODEM", "PATCH", 
+            "RAID0", "RAID1", "RAID5", "SATA3", "RS232", 
+            "FIBER", "ESATA", "MOLEX", "SHELL", "MACRO",
+            "LINUX", "TOKEN", "POWER", "CABLE", "HTTPS"
+        ];
         
         let targetWord = aPlusWords[Math.floor(Math.random() * aPlusWords.length)].toUpperCase();
         let currentGuess = "";
         let guesses = [];
         const maxGuesses = 6;
-        const wordLength = targetWord.length;
+        const wordLength = 5;
 
         const board = document.getElementById("game-board");
         const messageDisplay = document.getElementById("message");
+        const resetBtn = document.getElementById("reset");
 
-        // Initialize board
-        board.style.gridTemplateColumns = `repeat(${wordLength}, 1fr)`;
+        // Generate Grid
         for (let i = 0; i < maxGuesses * wordLength; i++) {
             const tile = document.createElement("div");
             tile.classList.add("tile");
@@ -70,53 +80,55 @@
             board.appendChild(tile);
         }
 
-        function updateBoard() {
-            for (let i = 0; i < currentGuess.length; i++) {
-                let tile = document.getElementById("tile-" + (guesses.length * wordLength + i));
-                tile.innerText = currentGuess[i];
-            }
-        }
-
         document.addEventListener("keydown", (e) => {
             if (guesses.length >= maxGuesses) return;
 
             if (e.key === "Enter") {
-                if (currentGuess.length !== wordLength) {
-                    messageDisplay.innerText = "Too short!";
+                if (currentGuess.length < 5) {
+                    messageDisplay.innerText = "NOT ENOUGH BITS (Need 5 letters)";
                     return;
                 }
                 submitGuess();
             } else if (e.key === "Backspace") {
-                let tile = document.getElementById("tile-" + (guesses.length * wordLength + currentGuess.length - 1));
-                tile.innerText = "";
                 currentGuess = currentGuess.slice(0, -1);
+                updateDisplay();
                 messageDisplay.innerText = "";
-            } else if (currentGuess.length < wordLength && e.key.match(/^[a-z0-9]$/i)) {
+            } else if (currentGuess.length < 5 && e.key.match(/^[a-z0-9]$/i)) {
                 currentGuess += e.key.toUpperCase();
-                updateBoard();
+                updateDisplay();
             }
         });
+
+        function updateDisplay() {
+            const rowOffset = guesses.length * wordLength;
+            for (let i = 0; i < wordLength; i++) {
+                const tile = document.getElementById("tile-" + (rowOffset + i));
+                tile.innerText = currentGuess[i] || "";
+                tile.classList.toggle("filled", !!currentGuess[i]);
+            }
+        }
 
         function submitGuess() {
             const rowOffset = guesses.length * wordLength;
             let tempTarget = targetWord.split("");
+            let guessArr = currentGuess.split("");
             
-            // First pass: Find corrects
-            for (let i = 0; i < wordLength; i++) {
+            // First pass: Corrects
+            for (let i = 0; i < 5; i++) {
                 const tile = document.getElementById("tile-" + (rowOffset + i));
-                if (currentGuess[i] === targetWord[i]) {
+                if (guessArr[i] === targetWord[i]) {
                     tile.classList.add("correct");
                     tempTarget[i] = null;
                 }
             }
 
-            // Second pass: Find presents/absents
-            for (let i = 0; i < wordLength; i++) {
+            // Second pass: Presents / Absents
+            for (let i = 0; i < 5; i++) {
                 const tile = document.getElementById("tile-" + (rowOffset + i));
                 if (!tile.classList.contains("correct")) {
-                    if (tempTarget.includes(currentGuess[i])) {
+                    if (tempTarget.includes(guessArr[i])) {
                         tile.classList.add("present");
-                        tempTarget[tempTarget.indexOf(currentGuess[i])] = null;
+                        tempTarget[tempTarget.indexOf(guessArr[i])] = null;
                     } else {
                         tile.classList.add("absent");
                     }
@@ -124,15 +136,20 @@
             }
 
             if (currentGuess === targetWord) {
-                messageDisplay.innerText = "PASSED! Certification Earned.";
-                guesses.length = maxGuesses; // End game
+                messageDisplay.innerText = "PASSED: Certification Credential Issued!";
+                endGame();
             } else {
                 guesses.push(currentGuess);
                 currentGuess = "";
                 if (guesses.length === maxGuesses) {
-                    messageDisplay.innerText = "FAILED. The term was: " + targetWord;
+                    messageDisplay.innerText = "FAILED: Correct term was " + targetWord;
+                    endGame();
                 }
             }
+        }
+
+        function endGame() {
+            resetBtn.style.visibility = "visible";
         }
     </script>
 </body>
